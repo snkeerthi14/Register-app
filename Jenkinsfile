@@ -5,7 +5,16 @@ pipeline {
         maven 'maven3'
     }
 
-stages{
+	 environment {
+	    APP_NAME = "register-app-pipeline"
+            RELEASE = "1.0.0"
+            DOCKER_USER = "snkeerthi"
+            DOCKER_PASS = 'dockerhub'
+            IMAGE_NAME = "${DOCKER_USER}" + "/" + "${APP_NAME}"
+            IMAGE_TAG = "${RELEASE}-${BUILD_NUMBER}"
+    }
+
+    stages{
         stage("Cleanup Workspace"){
                 steps {
                 cleanWs()
@@ -41,7 +50,7 @@ stages{
            }
        }
 
-	 stage("Quality Gate"){
+	   stage("Quality Gate"){
            steps {
                script {
                     waitForQualityGate abortPipeline: false, credentialsId: 'jenkins-sonarqube-token'
@@ -64,6 +73,15 @@ stages{
             }
 
        }
+
+	   stage("Trivy Scan") {
+           steps {
+               script {
+	            sh ('docker run -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image snkeerthi/register-app-pipeline:latest --no-progress --scanners vuln  --exit-code 0 --severity HIGH,CRITICAL --format table')
+               }
+           }
+       }
+ 
 
 
   }
